@@ -1,14 +1,13 @@
 # Backend Dockerfile
-FROM python:3.12-slim
+FROM python:3.11-slim-bullseye
 
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN apt-get update && \
+    apt-get install -y gcc curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
 COPY requirements.txt .
