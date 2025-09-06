@@ -60,23 +60,23 @@ function App() {
     
     for (let i = 0; i < audioPoolSize; i++) {
       // Slap audio pool
-      const slapAudio = new Audio('sounds/slap.mp3')
+      const slapAudio = new Audio('beatmeat/sounds/slap.mp3')
       slapAudio.volume = 0.3
       slapAudioPool.current.push(slapAudio)
       
       // Bouta audio pool
-      const boutaAudio = new Audio('sounds/bouta.mp3')
+      const boutaAudio = new Audio('beatmeat/sounds/bouta.mp3')
       boutaAudio.volume = 0.7
       boutaAudioPool.current.push(boutaAudio)
       
       // Chum audio pool
-      const chumAudio = new Audio('sounds/chum.mp3')
+      const chumAudio = new Audio('beatmeat/sounds/chum.mp3')
       chumAudio.volume = 0.8
       chumAudioPool.current.push(chumAudio)
     }
     
     // Create background music
-    bgMusicRef.current = new Audio('sounds/bg.mp3')
+    bgMusicRef.current = new Audio('beatmeat/sounds/bg.mp3')
     bgMusicRef.current.volume = 0.1 // 10% volume (90% reduction from original)
     bgMusicRef.current.loop = true
     bgMusicRef.current.preload = 'auto'
