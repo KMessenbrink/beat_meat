@@ -22,7 +22,7 @@ services:
     build: ./frontend
     container_name: beatmeat-frontend
     ports:
-      - "3000:80"
+      - "6900:80"
     volumes:
       # Mount sounds and icons for persistence and easy updates
       - ./sounds:/usr/share/nginx/html/sounds:ro
@@ -36,7 +36,3 @@ services:
       timeout: 10s
       retries: 3
 
-volumes:
-  # Named volume for database persistence
-  beatmeat-data:
-    driver: local

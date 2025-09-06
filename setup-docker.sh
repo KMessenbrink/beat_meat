@@ -48,7 +48,7 @@ docker-compose ps
 
 echo ""
 echo "🎮 Beat Meat Game is ready!"
-echo "🌐 Frontend: http://localhost:3000"
+echo "🌐 Frontend: http://localhost:6900"
 echo "🔌 Backend: http://localhost:8000"
 echo ""
 echo "📁 Persistent data:"

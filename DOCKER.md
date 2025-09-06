@@ -26,10 +26,8 @@ docker-compose down
 
 ```
 beat_meat/
-├── docker-compose.yml          # Development setup
-├── docker-compose.prod.yml     # Production setup
+├── docker-compose.yml          # Docker setup
 ├── setup-docker.sh            # Automated setup script
-├── .env                       # Environment variables
 ├── backend/
 │   ├── Dockerfile
 │   └── ...
@@ -58,7 +56,7 @@ beat_meat/
 - **Health Check:** `curl http://localhost:8000/`
 
 ### Frontend  
-- **Port:** 3000 (dev) / 80 (prod)
+- **Port:** 6900
 - **Technology:** React + Vite + Nginx
 - **Assets:** Sounds & icons mounted from host
 - **Health Check:** `curl http://localhost/`
@@ -110,26 +108,13 @@ docker-compose exec backend bash
 docker-compose exec frontend sh
 ```
 
-## 🌐 Production Deployment
+## 🌐 Server Deployment
 
-For production use `docker-compose.prod.yml`:
+The application is optimized to run on `smsandstocks.com/beatmeat`:
 
-```bash
-# Setup production directories
-sudo mkdir -p /opt/beatmeat/{data,sounds,icons,logs,ssl}
-sudo cp -r sounds/* /opt/beatmeat/sounds/
-sudo cp -r icons/* /opt/beatmeat/icons/
-
-# Start production setup
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### Production Volumes
-- Database: `/opt/beatmeat/data`
-- Sounds: `/opt/beatmeat/sounds`
-- Icons: `/opt/beatmeat/icons`
-- Logs: `/opt/beatmeat/logs`
-- SSL: `/opt/beatmeat/ssl`
+1. **Frontend**: Runs on port 6900, served by nginx
+2. **Backend**: Runs on port 8000 with WebSocket support
+3. **Routing**: Main server nginx routes `/beatmeat` to port 6900
 
 ## 🔒 Security Features
 
@@ -205,9 +190,9 @@ docker-compose restart backend
 
 ## 🎮 Game Access
 
-- **Local Development:** http://localhost:3000
-- **Production:** http://your-domain.com
-- **Backend API:** http://localhost:8000 or http://your-domain.com:8000
+- **Local Development:** http://localhost:6900
+- **Production:** http://smsandstocks.com/beatmeat
+- **Backend API:** http://localhost:8000 or http://smsandstocks.com:8000
 - **API Docs:** http://localhost:8000/docs
 
 ## 🔄 Updates
