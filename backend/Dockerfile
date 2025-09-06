@@ -3,11 +3,7 @@ FROM python:3.11-slim-bullseye
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && \
-    apt-get install -y gcc curl && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# No system dependencies needed for pure Python packages
 
 # Copy requirements first for better caching
 COPY requirements.txt .
@@ -21,6 +17,10 @@ RUN mkdir -p /app/data
 
 # Expose port
 EXPOSE 8000
+
+# Health check using python instead of curl
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/')" || exit 1
 
 # Run the application
 CMD ["python", "main.py"]
