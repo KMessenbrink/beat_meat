@@ -142,7 +142,7 @@ function App() {
 
   const connectWebSocket = (name) => {
     const userId = generateUserId()
-    const websocket = new WebSocket(`ws://smsandstocks.com:8000/ws/${userId}`)
+    const websocket = new WebSocket(`wss://smsandstocks.com/ws/${userId}`)
     
     websocket.onopen = () => {
       websocket.send(JSON.stringify({
