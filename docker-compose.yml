@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: beatmeat-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_PATH=/app/data/beatmeat.db
+    volumes:
+      # Mount database directory for persistence
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build: ./frontend
+    container_name: beatmeat-frontend
+    ports:
+      - "3000:80"
+    volumes:
+      # Mount sounds and icons for persistence and easy updates
+      - ./sounds:/usr/share/nginx/html/sounds:ro
+      - ./icons:/usr/share/nginx/html/icons:ro
+    restart: unless-stopped
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  # Named volume for database persistence
+  beatmeat-data:
+    driver: local
