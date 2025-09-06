@@ -346,7 +346,7 @@ function App() {
       <div className="game-area">
         <div className={`fist-container ${shouldSmoke ? 'smoking' : ''}`}>
           <img
-            src="../icons/fist.png"
+            src="beatmeat/icons/fist.png"
             alt="Fist"
             className={`fist-icon ${isPunching ? 'punching' : ''}`}
             onClick={handleFistClick}
@@ -355,7 +355,7 @@ function App() {
 
         <div className="meat-container">
           <img
-            src="../icons/meat.png"
+            src="beatmeat/icons/meat.png"
             alt="Meat"
             className={`meat-icon ${isMeatHit ? 'hit' : ''}`}
           />
