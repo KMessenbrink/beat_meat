@@ -18,14 +18,29 @@ function App() {
   const [showEncouragement, setShowEncouragement] = useState(false)
   const particleIdRef = useRef(0)
   
-  // Audio pools for overlapping sound effects
+  // Modern audio system using Web Audio API + HTML Audio fallback
   const slapAudioPool = useRef([])
   const boutaAudioPool = useRef([])
   const chumAudioPool = useRef([])
   const bgMusicRef = useRef(null)
-  // Detect mobile devices for performance optimization
+  const audioPoolSize = 3 // Keep it simple for all devices
+  
+  // Web Audio API buffers and context
+  const audioContext = useRef(null)
+  const audioBuffers = useRef({
+    slap: null,
+    bouta: null, 
+    chum: null,
+    bg: null
+  })
+  const currentAudioIndex = useRef({
+    slap: 0,
+    bouta: 0,
+    chum: 0
+  })
+  
+  // Detect mobile for performance optimization (keep for particle count)
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-  const audioPoolSize = isMobile ? 1 : 10 // Single audio instance for mobile to prevent conflicts
 
   const generateUserId = () => {
     return 'user_' + Math.random().toString(36).substr(2, 9)
@@ -54,13 +69,53 @@ function App() {
     }, 3000)
   }
 
-  const createAudioPools = () => {
-    // Prevent duplicate loading
-    if (slapAudioPool.current.length > 0) return
+  // Initialize Web Audio API context
+  const initializeAudioContext = () => {
+    if (!audioContext.current) {
+      audioContext.current = new (window.AudioContext || window.webkitAudioContext)()
+    }
+    return audioContext.current
+  }
+  
+  // Load audio buffer for Web Audio API
+  const loadAudioBuffer = async (url) => {
+    try {
+      const audioCtx = initializeAudioContext()
+      const response = await fetch(url)
+      const arrayBuffer = await response.arrayBuffer()
+      const buffer = await audioCtx.decodeAudioData(arrayBuffer)
+      return buffer
+    } catch (error) {
+      console.log(`Failed to load audio buffer for ${url}:`, error)
+      return null
+    }
+  }
+  
+  // Initialize modern audio system
+  const initializeAudioSystem = async () => {
+    console.log('Initializing modern audio system...')
     
-    console.log('Creating audio pools for', isMobile ? 'mobile' : 'desktop', 'device')
+    // Load audio buffers for Web Audio API
+    try {
+      const [slapBuffer, boutaBuffer, chumBuffer, bgBuffer] = await Promise.all([
+        loadAudioBuffer('beatmeat/sounds/slap.mp3'),
+        loadAudioBuffer('beatmeat/sounds/bouta.mp3'), 
+        loadAudioBuffer('beatmeat/sounds/chum.mp3'),
+        loadAudioBuffer('beatmeat/sounds/bg.mp3')
+      ])
+      
+      audioBuffers.current = {
+        slap: slapBuffer,
+        bouta: boutaBuffer,
+        chum: chumBuffer,
+        bg: bgBuffer
+      }
+      console.log('Audio buffers loaded successfully')
+    } catch (error) {
+      console.log('Web Audio initialization failed, using HTML Audio fallback')
+    }
     
-    // Create audio pools for overlapping sounds
+    // Create fallback HTML Audio pools
     slapAudioPool.current = []
     boutaAudioPool.current = []
     chumAudioPool.current = []
@@ -68,153 +123,120 @@ function App() {
     for (let i = 0; i < audioPoolSize; i++) {
       // Slap audio pool
       const slapAudio = new Audio('beatmeat/sounds/slap.mp3')
-      slapAudio.volume = 0.3
       slapAudio.preload = 'auto'
+      slapAudio.volume = 0.3
       slapAudioPool.current.push(slapAudio)
       
-      // Bouta audio pool  
+      // Bouta audio pool
       const boutaAudio = new Audio('beatmeat/sounds/bouta.mp3')
+      boutaAudio.preload = 'auto' 
       boutaAudio.volume = 0.7
-      boutaAudio.preload = 'auto'
       boutaAudioPool.current.push(boutaAudio)
       
       // Chum audio pool
       const chumAudio = new Audio('beatmeat/sounds/chum.mp3')
-      chumAudio.volume = 0.8
       chumAudio.preload = 'auto'
+      chumAudio.volume = 0.8
       chumAudioPool.current.push(chumAudio)
     }
     
-    // Create background music (lower volume on mobile)
+    // Background music
     bgMusicRef.current = new Audio('beatmeat/sounds/bg.mp3')
-    bgMusicRef.current.volume = isMobile ? 0.05 : 0.1 // Even quieter on mobile
+    bgMusicRef.current.volume = 0.05
     bgMusicRef.current.loop = true
     bgMusicRef.current.preload = 'auto'
     
-    // Start background music (with user interaction handling)
-    const startBgMusic = () => {
-      if (bgMusicRef.current && bgMusicRef.current.paused) {
-        bgMusicRef.current.play().then(() => {
-          console.log('Background music started successfully')
-        }).catch(e => {
-          console.log('Background music autoplay blocked:', e.message)
-        })
+    // Preload all HTML Audio elements
+    const allAudio = [...slapAudioPool.current, ...boutaAudioPool.current, ...chumAudioPool.current, bgMusicRef.current]
+    allAudio.forEach(audio => audio.load())
+    
+    // Start background music on first interaction
+    const startOnInteraction = async () => {
+      console.log('User interaction detected - starting audio system')
+      
+      // Resume audio context if suspended
+      if (audioContext.current && audioContext.current.state === 'suspended') {
+        await audioContext.current.resume()
       }
-    }
-    
-    // Try to start immediately (most browsers will block this)
-    startBgMusic()
-    
-    // Start on first user interaction (this will work)
-    const startOnInteraction = (e) => {
-      console.log('User interaction detected, starting background music and initializing all audio')
       
       // Start background music
-      startBgMusic()
-      
-      // On mobile, play a silent sound from each pool to "unlock" audio
-      if (isMobile) {
-        console.log('Mobile detected - unlocking all audio pools')
-        
-        // Play silent sounds to unlock iOS audio
-        slapAudioPool.current.forEach((audio, index) => {
-          if (audio) {
-            audio.volume = 0
-            audio.play().then(() => {
-              audio.pause()
-              audio.currentTime = 0
-              audio.volume = 0.3 // Restore original volume
-              console.log(`Slap audio ${index} unlocked`)
-            }).catch(e => console.log(`Failed to unlock slap audio ${index}:`, e))
-          }
-        })
-        
-        boutaAudioPool.current.forEach((audio, index) => {
-          if (audio) {
-            audio.volume = 0
-            audio.play().then(() => {
-              audio.pause()
-              audio.currentTime = 0
-              audio.volume = 0.7
-              console.log(`Bouta audio ${index} unlocked`)
-            }).catch(e => console.log(`Failed to unlock bouta audio ${index}:`, e))
-          }
-        })
-        
-        chumAudioPool.current.forEach((audio, index) => {
-          if (audio) {
-            audio.volume = 0
-            audio.play().then(() => {
-              audio.pause()
-              audio.currentTime = 0
-              audio.volume = 0.8
-              console.log(`Chum audio ${index} unlocked`)
-            }).catch(e => console.log(`Failed to unlock chum audio ${index}:`, e))
-          }
-        })
+      if (bgMusicRef.current) {
+        bgMusicRef.current.play().catch(e => console.log('Background music failed:', e))
       }
       
+      // Remove listeners
       document.removeEventListener('click', startOnInteraction, true)
       document.removeEventListener('touchstart', startOnInteraction, true)
-      document.removeEventListener('keydown', startOnInteraction, true)
     }
     
-    // Add event listeners with capture phase to catch early
     document.addEventListener('click', startOnInteraction, true)
-    document.addEventListener('touchstart', startOnInteraction, true) 
-    document.addEventListener('keydown', startOnInteraction, true)
+    document.addEventListener('touchstart', startOnInteraction, true)
   }
 
-  const playOverlappingSound = (audioPool, volume = 0.7) => {
-    if (audioPool.current.length === 0) return
-    
-    // Mobile-specific audio handling
-    if (isMobile) {
-      // On mobile, only use the first audio instance and reset it
-      const audio = audioPool.current[0]
-      if (audio) {
-        audio.volume = volume
-        audio.currentTime = 0
-        // Force stop any current playback before starting new
-        audio.pause()
-        audio.currentTime = 0
+  // Modern sound playing with Web Audio API + fallback
+  const playSound = async (soundType, volume = 0.7) => {
+    // Try Web Audio API first (best performance, especially on mobile)
+    if (audioBuffers.current[soundType] && audioContext.current) {
+      try {
+        const audioCtx = audioContext.current
+        if (audioCtx.state === 'suspended') {
+          await audioCtx.resume()
+        }
         
-        // Small delay to prevent iOS audio conflicts
-        setTimeout(() => {
-          audio.play().catch(e => {
-            console.log('Mobile audio play failed:', e)
-            // Try to reinitialize audio on mobile if it fails
-            if (e.name === 'NotAllowedError') {
-              console.log('Audio permission issue - user needs to interact first')
-            }
-          })
-        }, 10)
+        const source = audioCtx.createBufferSource()
+        const gainNode = audioCtx.createGain()
+        
+        source.buffer = audioBuffers.current[soundType]
+        gainNode.gain.value = volume
+        
+        source.connect(gainNode)
+        gainNode.connect(audioCtx.destination)
+        source.start(0)
+        
+        return // Success - exit early
+      } catch (error) {
+        console.log(`Web Audio failed for ${soundType}, falling back to HTML Audio:`, error)
       }
-    } else {
-      // Desktop: use overlapping audio as before
-      let availableAudio = audioPool.current.find(audio => audio.paused || audio.ended)
-      
-      if (!availableAudio) {
-        availableAudio = audioPool.current[0]
-      }
-      
-      availableAudio.volume = volume
-      availableAudio.currentTime = 0
-      availableAudio.play().catch(e => console.log('Audio play failed:', e))
     }
+    
+    // Fallback to HTML Audio API (simpler approach like lizard example)
+    const audioPool = soundType === 'slap' ? slapAudioPool.current : 
+                     soundType === 'bouta' ? boutaAudioPool.current : 
+                     chumAudioPool.current
+    
+    if (audioPool.length === 0) return
+    
+    const currentIndex = currentAudioIndex.current[soundType]
+    const audio = audioPool[currentIndex]
+    
+    // Simple reset and play approach (like lizard example)
+    if (!audio.paused) {
+      audio.pause()
+    }
+    audio.currentTime = 0
+    audio.volume = volume
+    
+    try {
+      await audio.play()
+    } catch (error) {
+      console.log(`HTML Audio failed for ${soundType}:`, error)
+    }
+    
+    // Move to next audio instance in pool
+    currentAudioIndex.current[soundType] = (currentIndex + 1) % audioPoolSize
   }
 
   const playClickSounds = (clickCount) => {
-    // Always play slap sound for every click (overlapping allowed)
-    playOverlappingSound(slapAudioPool, 0.3)
+    // Always play slap sound for every click - highest priority
+    playSound('slap', 0.3)
     
-    // Handle milestone sounds (overlapping allowed)
+    // Handle milestone sounds
     if (clickCount % 250 === 0) {
       // 250 clicks - play chum.mp3
-      setTimeout(() => playOverlappingSound(chumAudioPool, 0.8), 100)
+      setTimeout(() => playSound('chum', 0.8), 100)
     } else if (clickCount % 50 === 0) {
-      // 50 clicks - play bouta.mp3
-      setTimeout(() => playOverlappingSound(boutaAudioPool, 0.7), 150)
+      // 50 clicks - play bouta.mp3  
+      setTimeout(() => playSound('bouta', 0.7), 150)
     }
   }
 
@@ -352,8 +374,8 @@ function App() {
   }
 
   useEffect(() => {
-    // Initialize audio pools for overlapping sounds
-    createAudioPools()
+    // Initialize modern audio system
+    initializeAudioSystem()
 
     return () => {
       if (ws) {
@@ -363,6 +385,10 @@ function App() {
       if (bgMusicRef.current) {
         bgMusicRef.current.pause()
         bgMusicRef.current = null
+      }
+      // Close audio context
+      if (audioContext.current) {
+        audioContext.current.close()
       }
     }
   }, [])
