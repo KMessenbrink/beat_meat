@@ -85,43 +85,39 @@ function App() {
       chumAudioPool.current.push(chumAudio)
     }
     
-    // Create background music (only if not mobile due to performance)
-    if (!isMobile) {
-      bgMusicRef.current = new Audio('beatmeat/sounds/bg.mp3')
-      bgMusicRef.current.volume = 0.1
-      bgMusicRef.current.loop = true
-      bgMusicRef.current.preload = 'auto'
+    // Create background music (lower volume on mobile)
+    bgMusicRef.current = new Audio('beatmeat/sounds/bg.mp3')
+    bgMusicRef.current.volume = isMobile ? 0.05 : 0.1 // Even quieter on mobile
+    bgMusicRef.current.loop = true
+    bgMusicRef.current.preload = 'auto'
+    
+    // Start background music (with user interaction handling)
+    const startBgMusic = () => {
+      if (bgMusicRef.current && bgMusicRef.current.paused) {
+        bgMusicRef.current.play().then(() => {
+          console.log('Background music started successfully')
+        }).catch(e => {
+          console.log('Background music autoplay blocked:', e.message)
+        })
+      }
     }
     
-    // Start background music (only for desktop, with user interaction handling)
-    if (!isMobile) {
-      const startBgMusic = () => {
-        if (bgMusicRef.current && bgMusicRef.current.paused) {
-          bgMusicRef.current.play().then(() => {
-            console.log('Background music started successfully')
-          }).catch(e => {
-            console.log('Background music autoplay blocked:', e.message)
-          })
-        }
-      }
-      
-      // Try to start immediately (most browsers will block this)
+    // Try to start immediately (most browsers will block this)
+    startBgMusic()
+    
+    // Start on first user interaction (this will work)
+    const startOnInteraction = (e) => {
+      console.log('User interaction detected, starting background music')
       startBgMusic()
-      
-      // Start on first user interaction (this will work)
-      const startOnInteraction = (e) => {
-        console.log('User interaction detected, starting background music')
-        startBgMusic()
-        document.removeEventListener('click', startOnInteraction, true)
-        document.removeEventListener('touchstart', startOnInteraction, true)
-        document.removeEventListener('keydown', startOnInteraction, true)
-      }
-      
-      // Add event listeners with capture phase to catch early
-      document.addEventListener('click', startOnInteraction, true)
-      document.addEventListener('touchstart', startOnInteraction, true) 
-      document.addEventListener('keydown', startOnInteraction, true)
+      document.removeEventListener('click', startOnInteraction, true)
+      document.removeEventListener('touchstart', startOnInteraction, true)
+      document.removeEventListener('keydown', startOnInteraction, true)
     }
+    
+    // Add event listeners with capture phase to catch early
+    document.addEventListener('click', startOnInteraction, true)
+    document.addEventListener('touchstart', startOnInteraction, true) 
+    document.addEventListener('keydown', startOnInteraction, true)
   }
 
   const playOverlappingSound = (audioPool, volume = 0.7) => {
@@ -141,9 +137,6 @@ function App() {
   }
 
   const playClickSounds = (clickCount) => {
-    // On mobile, reduce sound frequency to prevent audio lag
-    if (isMobile && clickCount % 2 !== 0) return // Only every other click on mobile
-    
     // Always play slap sound for every click (overlapping allowed)
     playOverlappingSound(slapAudioPool, 0.3)
     
