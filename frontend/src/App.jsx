@@ -159,9 +159,34 @@ function App() {
         await audioContext.current.resume()
       }
       
-      // Start background music
-      if (bgMusicRef.current) {
-        bgMusicRef.current.play().catch(e => console.log('Background music failed:', e))
+      // Try Web Audio API for background music first (better mobile support)
+      if (audioBuffers.current.bg && audioContext.current) {
+        try {
+          const audioCtx = audioContext.current
+          const source = audioCtx.createBufferSource()
+          const gainNode = audioCtx.createGain()
+          
+          source.buffer = audioBuffers.current.bg
+          gainNode.gain.value = 0.05
+          source.loop = true
+          
+          source.connect(gainNode)
+          gainNode.connect(audioCtx.destination)
+          source.start(0)
+          
+          console.log('Background music started with Web Audio API')
+        } catch (error) {
+          console.log('Web Audio background music failed, trying HTML Audio:', error)
+          // Fallback to HTML Audio
+          if (bgMusicRef.current) {
+            bgMusicRef.current.play().catch(e => console.log('HTML background music failed:', e))
+          }
+        }
+      } else {
+        // Fallback to HTML Audio
+        if (bgMusicRef.current) {
+          bgMusicRef.current.play().catch(e => console.log('Background music failed:', e))
+        }
       }
       
       // Remove listeners
