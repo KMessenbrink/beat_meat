@@ -71,7 +71,8 @@ function App() {
 
   // Initialize Web Audio API context
   const initializeAudioContext = () => {
-    if (!audioContext.current) {
+    if (!audioContext.current || audioContext.current.state === 'closed') {
+      console.log('🎵 Creating new AudioContext')
       audioContext.current = new (window.AudioContext || window.webkitAudioContext)()
     }
     return audioContext.current
@@ -93,15 +94,16 @@ function App() {
   
   // Initialize modern audio system
   const initializeAudioSystem = async () => {
-    console.log('Initializing modern audio system...')
+    console.log('🎵 Initializing modern audio system...')
     
     // Load audio buffers for Web Audio API
     try {
+      console.log('🎵 Loading Web Audio API buffers...')
       const [slapBuffer, boutaBuffer, chumBuffer, bgBuffer] = await Promise.all([
-        loadAudioBuffer('beatmeat/sounds/slap.mp3'),
-        loadAudioBuffer('beatmeat/sounds/bouta.mp3'), 
-        loadAudioBuffer('beatmeat/sounds/chum.mp3'),
-        loadAudioBuffer('beatmeat/sounds/bg.mp3')
+        loadAudioBuffer('./sounds/slap.mp3'),
+        loadAudioBuffer('./sounds/bouta.mp3'), 
+        loadAudioBuffer('./sounds/chum.mp3'),
+        loadAudioBuffer('./sounds/bg.mp3')
       ])
       
       audioBuffers.current = {
@@ -110,41 +112,48 @@ function App() {
         chum: chumBuffer,
         bg: bgBuffer
       }
-      console.log('Audio buffers loaded successfully')
+      console.log('✅ Audio buffers loaded successfully:', {
+        slap: !!slapBuffer,
+        bouta: !!boutaBuffer,
+        chum: !!chumBuffer,
+        bg: !!bgBuffer
+      })
     } catch (error) {
-      console.log('Web Audio initialization failed, using HTML Audio fallback')
+      console.error('❌ Web Audio initialization failed, using HTML Audio fallback:', error)
     }
     
     // Create fallback HTML Audio pools
+    console.log('🎵 Creating HTML Audio pools...')
     slapAudioPool.current = []
     boutaAudioPool.current = []
     chumAudioPool.current = []
     
     for (let i = 0; i < audioPoolSize; i++) {
       // Slap audio pool
-      const slapAudio = new Audio('beatmeat/sounds/slap.mp3')
+      const slapAudio = new Audio('./sounds/slap.mp3')
       slapAudio.preload = 'auto'
       slapAudio.volume = 0.3
       slapAudioPool.current.push(slapAudio)
       
       // Bouta audio pool
-      const boutaAudio = new Audio('beatmeat/sounds/bouta.mp3')
+      const boutaAudio = new Audio('./sounds/bouta.mp3')
       boutaAudio.preload = 'auto' 
       boutaAudio.volume = 0.7
       boutaAudioPool.current.push(boutaAudio)
       
       // Chum audio pool
-      const chumAudio = new Audio('beatmeat/sounds/chum.mp3')
+      const chumAudio = new Audio('./sounds/chum.mp3')
       chumAudio.preload = 'auto'
       chumAudio.volume = 0.8
       chumAudioPool.current.push(chumAudio)
     }
     
     // Background music
-    bgMusicRef.current = new Audio('beatmeat/sounds/bg.mp3')
+    bgMusicRef.current = new Audio('./sounds/bg.mp3')
     bgMusicRef.current.volume = 0.05
     bgMusicRef.current.loop = true
     bgMusicRef.current.preload = 'auto'
+    console.log('✅ HTML Audio pools created')
     
     // Preload all HTML Audio elements
     const allAudio = [...slapAudioPool.current, ...boutaAudioPool.current, ...chumAudioPool.current, bgMusicRef.current]
@@ -152,7 +161,7 @@ function App() {
     
     // Start background music on first interaction
     const startOnInteraction = async () => {
-      console.log('User interaction detected - starting audio system')
+      console.log('🎵 User interaction detected - starting audio system')
       
       // Resume audio context if suspended
       if (audioContext.current && audioContext.current.state === 'suspended') {
@@ -200,12 +209,23 @@ function App() {
 
   // Modern sound playing with Web Audio API + fallback
   const playSound = async (soundType, volume = 0.7) => {
+    console.log(`🎵 Attempting to play sound: ${soundType} at volume ${volume}`)
+    
     // Try Web Audio API first (best performance, especially on mobile)
-    if (audioBuffers.current[soundType] && audioContext.current) {
+    if (audioBuffers.current[soundType]) {
       try {
-        const audioCtx = audioContext.current
+        console.log(`🎵 Using Web Audio API for ${soundType}`)
+        
+        // Ensure we have a valid AudioContext
+        const audioCtx = initializeAudioContext()
+        console.log(`🎵 AudioContext state: ${audioCtx.state}`)
+        
         if (audioCtx.state === 'suspended') {
+          console.log(`🎵 Resuming suspended AudioContext`)
           await audioCtx.resume()
+        } else if (audioCtx.state === 'closed') {
+          console.log(`🎵 AudioContext was closed, cannot use Web Audio API`)
+          throw new Error('AudioContext closed')
         }
         
         const source = audioCtx.createBufferSource()
@@ -218,10 +238,13 @@ function App() {
         gainNode.connect(audioCtx.destination)
         source.start(0)
         
+        console.log(`✅ Web Audio API playback started for ${soundType}`)
         return // Success - exit early
       } catch (error) {
-        console.log(`Web Audio failed for ${soundType}, falling back to HTML Audio:`, error)
+        console.error(`❌ Web Audio failed for ${soundType}, falling back to HTML Audio:`, error)
       }
+    } else {
+      console.log(`🎵 Web Audio not available for ${soundType} - buffer: ${!!audioBuffers.current[soundType]}`)
     }
     
     // Fallback to HTML Audio API (simpler approach like lizard example)
@@ -229,22 +252,31 @@ function App() {
                      soundType === 'bouta' ? boutaAudioPool.current : 
                      chumAudioPool.current
     
-    if (audioPool.length === 0) return
+    console.log(`🎵 Using HTML Audio API for ${soundType}, pool size: ${audioPool.length}`)
+    if (audioPool.length === 0) {
+      console.error(`❌ No audio pool available for ${soundType}`)
+      return
+    }
     
     const currentIndex = currentAudioIndex.current[soundType]
     const audio = audioPool[currentIndex]
+    console.log(`🎵 Selected audio element ${currentIndex} for ${soundType}`)
     
     // Simple reset and play approach (like lizard example)
     if (!audio.paused) {
+      console.log(`🎵 Pausing currently playing audio`)
       audio.pause()
     }
     audio.currentTime = 0
     audio.volume = volume
     
     try {
+      console.log(`🎵 Starting HTML Audio playback for ${soundType}`)
       await audio.play()
+      console.log(`✅ HTML Audio playback started for ${soundType}`)
     } catch (error) {
-      console.log(`HTML Audio failed for ${soundType}:`, error)
+      console.error(`❌ HTML Audio failed for ${soundType}:`, error)
+      console.error(`Audio element readyState: ${audio.readyState}, networkState: ${audio.networkState}`)
     }
     
     // Move to next audio instance in pool
@@ -378,7 +410,11 @@ function App() {
   }
 
   const handleFistClick = () => {
-    if (!ws) return
+    console.log('👊 Fist clicked!')
+    if (!ws) {
+      console.error('❌ WebSocket not connected')
+      return
+    }
     
     // Always trigger particles and send click, but don't reset animation if already punching
     createParticles()
@@ -413,10 +449,11 @@ function App() {
         bgMusicRef.current.pause()
         bgMusicRef.current = null
       }
-      // Close audio context
-      if (audioContext.current) {
-        audioContext.current.close()
-      }
+      // DON'T close audio context during development (causes issues)
+      // Only close on actual app shutdown
+      // if (audioContext.current) {
+      //   audioContext.current.close()
+      // }
     }
   }, [])
 
@@ -477,7 +514,7 @@ function App() {
       <div className="game-area">
         <div className={`fist-container ${shouldSmoke ? 'smoking' : ''}`}>
           <img
-            src="beatmeat/icons/fist.png"
+            src="./icons/fist.png"
             alt="Fist"
             className={`fist-icon ${isPunching ? 'punching' : ''}`}
             onClick={handleFistClick}
@@ -486,7 +523,7 @@ function App() {
 
         <div className="meat-container">
           <img
-            src="beatmeat/icons/meat.png"
+            src="./icons/meat.png"
             alt="Meat"
             className={`meat-icon ${isMeatHit ? 'hit' : ''}`}
           />

@@ -75,6 +75,12 @@ if [ ! -d "node_modules" ]; then
     npm install
 fi
 
+# Set up assets for local development - copy to public directory
+echo "📁 Setting up local assets..."
+mkdir -p public/sounds public/icons
+cp -r ../sounds/* public/sounds/
+cp -r ../icons/* public/icons/
+
 # Environment variables are set in frontend/.env.local
 
 echo "🚀 Starting Vite development server..."
