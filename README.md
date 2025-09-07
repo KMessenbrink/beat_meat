@@ -1,5 +1,5 @@
 # Beat Meat - The Ultimate Punching Game
-sdfdsdsdf
+sdfdsdsdfd
 A fun, interactive web game where players click a fist to punch meat and compete on a global leaderboard!
 
 ## Features
