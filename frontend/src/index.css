@@ -142,22 +142,17 @@ body {
   position: relative;
 }
 
-/* Cool red pulsing effect for smoking mode */
+/* Cool red pulsing effect for smoking mode - tints the actual fist image */
 .fist-container.smoking .fist-icon {
-  filter: drop-shadow(0 0 15px #ff0000) hue-rotate(0deg);
-  border: 3px solid #ff0000;
-  border-radius: 15px;
-  animation: red-pulse 0.3s ease-in-out infinite alternate;
+  animation: fist-red-pulse 0.4s ease-in-out infinite alternate;
 }
 
-@keyframes red-pulse {
+@keyframes fist-red-pulse {
   0% {
-    filter: drop-shadow(0 0 15px #ff0000) hue-rotate(0deg) brightness(1);
-    border-color: #ff0000;
+    filter: brightness(1.2) contrast(1.3) drop-shadow(0 0 20px #ff4444);
   }
   100% {
-    filter: drop-shadow(0 0 25px #ff3333) hue-rotate(0deg) brightness(1.2);
-    border-color: #ff3333;
+    filter: brightness(1.5) contrast(1.5) sepia(0.8) saturate(2) hue-rotate(-10deg) drop-shadow(0 0 30px #ff0000);
   }
 }
 
