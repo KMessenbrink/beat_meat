@@ -142,11 +142,23 @@ body {
   position: relative;
 }
 
-/* Simplified fire effect for mobile performance */
+/* Cool red pulsing effect for smoking mode */
 .fist-container.smoking .fist-icon {
-  filter: drop-shadow(0 0 10px #ff4500);
-  border: 2px solid #ff4500;
-  border-radius: 10px;
+  filter: drop-shadow(0 0 15px #ff0000) hue-rotate(0deg);
+  border: 3px solid #ff0000;
+  border-radius: 15px;
+  animation: red-pulse 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes red-pulse {
+  0% {
+    filter: drop-shadow(0 0 15px #ff0000) hue-rotate(0deg) brightness(1);
+    border-color: #ff0000;
+  }
+  100% {
+    filter: drop-shadow(0 0 25px #ff3333) hue-rotate(0deg) brightness(1.2);
+    border-color: #ff3333;
+  }
 }
 
 /* Removed complex animations for mobile performance */

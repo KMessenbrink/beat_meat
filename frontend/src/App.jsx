@@ -25,7 +25,7 @@ function App() {
   const bgMusicRef = useRef(null)
   // Detect mobile devices for performance optimization
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-  const audioPoolSize = isMobile ? 3 : 10 // Smaller audio pool for mobile
+  const audioPoolSize = isMobile ? 1 : 10 // Single audio instance for mobile to prevent conflicts
 
   const generateUserId = () => {
     return 'user_' + Math.random().toString(36).substr(2, 9)
@@ -107,8 +107,53 @@ function App() {
     
     // Start on first user interaction (this will work)
     const startOnInteraction = (e) => {
-      console.log('User interaction detected, starting background music')
+      console.log('User interaction detected, starting background music and initializing all audio')
+      
+      // Start background music
       startBgMusic()
+      
+      // On mobile, play a silent sound from each pool to "unlock" audio
+      if (isMobile) {
+        console.log('Mobile detected - unlocking all audio pools')
+        
+        // Play silent sounds to unlock iOS audio
+        slapAudioPool.current.forEach((audio, index) => {
+          if (audio) {
+            audio.volume = 0
+            audio.play().then(() => {
+              audio.pause()
+              audio.currentTime = 0
+              audio.volume = 0.3 // Restore original volume
+              console.log(`Slap audio ${index} unlocked`)
+            }).catch(e => console.log(`Failed to unlock slap audio ${index}:`, e))
+          }
+        })
+        
+        boutaAudioPool.current.forEach((audio, index) => {
+          if (audio) {
+            audio.volume = 0
+            audio.play().then(() => {
+              audio.pause()
+              audio.currentTime = 0
+              audio.volume = 0.7
+              console.log(`Bouta audio ${index} unlocked`)
+            }).catch(e => console.log(`Failed to unlock bouta audio ${index}:`, e))
+          }
+        })
+        
+        chumAudioPool.current.forEach((audio, index) => {
+          if (audio) {
+            audio.volume = 0
+            audio.play().then(() => {
+              audio.pause()
+              audio.currentTime = 0
+              audio.volume = 0.8
+              console.log(`Chum audio ${index} unlocked`)
+            }).catch(e => console.log(`Failed to unlock chum audio ${index}:`, e))
+          }
+        })
+      }
+      
       document.removeEventListener('click', startOnInteraction, true)
       document.removeEventListener('touchstart', startOnInteraction, true)
       document.removeEventListener('keydown', startOnInteraction, true)
@@ -123,17 +168,40 @@ function App() {
   const playOverlappingSound = (audioPool, volume = 0.7) => {
     if (audioPool.current.length === 0) return
     
-    // Find an available audio instance (not currently playing)
-    let availableAudio = audioPool.current.find(audio => audio.paused || audio.ended)
-    
-    // If all are playing, use the first one (oldest sound)
-    if (!availableAudio) {
-      availableAudio = audioPool.current[0]
+    // Mobile-specific audio handling
+    if (isMobile) {
+      // On mobile, only use the first audio instance and reset it
+      const audio = audioPool.current[0]
+      if (audio) {
+        audio.volume = volume
+        audio.currentTime = 0
+        // Force stop any current playback before starting new
+        audio.pause()
+        audio.currentTime = 0
+        
+        // Small delay to prevent iOS audio conflicts
+        setTimeout(() => {
+          audio.play().catch(e => {
+            console.log('Mobile audio play failed:', e)
+            // Try to reinitialize audio on mobile if it fails
+            if (e.name === 'NotAllowedError') {
+              console.log('Audio permission issue - user needs to interact first')
+            }
+          })
+        }, 10)
+      }
+    } else {
+      // Desktop: use overlapping audio as before
+      let availableAudio = audioPool.current.find(audio => audio.paused || audio.ended)
+      
+      if (!availableAudio) {
+        availableAudio = audioPool.current[0]
+      }
+      
+      availableAudio.volume = volume
+      availableAudio.currentTime = 0
+      availableAudio.play().catch(e => console.log('Audio play failed:', e))
     }
-    
-    availableAudio.volume = volume
-    availableAudio.currentTime = 0
-    availableAudio.play().catch(e => console.log('Audio play failed:', e))
   }
 
   const playClickSounds = (clickCount) => {
