@@ -98,10 +98,10 @@ function App() {
     // Load audio buffers for Web Audio API
     try {
       const [slapBuffer, boutaBuffer, chumBuffer, bgBuffer] = await Promise.all([
-        loadAudioBuffer('beatmeat/sounds/slap.mp3'),
-        loadAudioBuffer('beatmeat/sounds/bouta.mp3'), 
-        loadAudioBuffer('beatmeat/sounds/chum.mp3'),
-        loadAudioBuffer('beatmeat/sounds/bg.mp3')
+        loadAudioBuffer('sounds/slap.mp3'),
+        loadAudioBuffer('sounds/bouta.mp3'), 
+        loadAudioBuffer('sounds/chum.mp3'),
+        loadAudioBuffer('sounds/bg.mp3')
       ])
       
       audioBuffers.current = {
@@ -122,26 +122,26 @@ function App() {
     
     for (let i = 0; i < audioPoolSize; i++) {
       // Slap audio pool
-      const slapAudio = new Audio('beatmeat/sounds/slap.mp3')
+      const slapAudio = new Audio('sounds/slap.mp3')
       slapAudio.preload = 'auto'
       slapAudio.volume = 0.3
       slapAudioPool.current.push(slapAudio)
       
       // Bouta audio pool
-      const boutaAudio = new Audio('beatmeat/sounds/bouta.mp3')
+      const boutaAudio = new Audio('sounds/bouta.mp3')
       boutaAudio.preload = 'auto' 
       boutaAudio.volume = 0.7
       boutaAudioPool.current.push(boutaAudio)
       
       // Chum audio pool
-      const chumAudio = new Audio('beatmeat/sounds/chum.mp3')
+      const chumAudio = new Audio('sounds/chum.mp3')
       chumAudio.preload = 'auto'
       chumAudio.volume = 0.8
       chumAudioPool.current.push(chumAudio)
     }
     
     // Background music
-    bgMusicRef.current = new Audio('beatmeat/sounds/bg.mp3')
+    bgMusicRef.current = new Audio('sounds/bg.mp3')
     bgMusicRef.current.volume = 0.05
     bgMusicRef.current.loop = true
     bgMusicRef.current.preload = 'auto'
@@ -267,7 +267,9 @@ function App() {
 
   const connectWebSocket = (name) => {
     const userId = generateUserId()
-    const websocket = new WebSocket(`wss://smsandstocks.com/ws/${userId}`)
+    // Use environment variable for WebSocket URL, fallback to production
+    const wsUrl = import.meta.env.VITE_WS_URL || 'wss://smsandstocks.com'
+    const websocket = new WebSocket(`${wsUrl}/ws/${userId}`)
     
     websocket.onopen = () => {
       websocket.send(JSON.stringify({
@@ -475,7 +477,7 @@ function App() {
       <div className="game-area">
         <div className={`fist-container ${shouldSmoke ? 'smoking' : ''}`}>
           <img
-            src="beatmeat/icons/fist.png"
+            src="icons/fist.png"
             alt="Fist"
             className={`fist-icon ${isPunching ? 'punching' : ''}`}
             onClick={handleFistClick}
@@ -484,7 +486,7 @@ function App() {
 
         <div className="meat-container">
           <img
-            src="beatmeat/icons/meat.png"
+            src="icons/meat.png"
             alt="Meat"
             className={`meat-icon ${isMeatHit ? 'hit' : ''}`}
           />
