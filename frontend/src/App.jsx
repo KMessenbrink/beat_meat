@@ -10,13 +10,24 @@ function App() {
   const [globalClicks, setGlobalClicks] = useState(0)
   const [connectedUsers, setConnectedUsers] = useState(0)
   const [leaderboard, setLeaderboard] = useState([])
+  const [showOnlineOnly, setShowOnlineOnly] = useState(false)
+  const [userRank, setUserRank] = useState(0)
+  const [messages, setMessages] = useState([])
+  const [newMessage, setNewMessage] = useState('')
+  const [showChat, setShowChat] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [originalTitle, setOriginalTitle] = useState('')
+  const [showLeaderboard, setShowLeaderboard] = useState(true)
   const [isPunching, setIsPunching] = useState(false)
   const [isMeatHit, setIsMeatHit] = useState(false)
   const [shouldSmoke, setShouldSmoke] = useState(false)
   const [particles, setParticles] = useState([])
   const [encouragementMessage, setEncouragementMessage] = useState('')
   const [showEncouragement, setShowEncouragement] = useState(false)
+  const [isDiscoMode, setIsDiscoMode] = useState(false)
   const particleIdRef = useRef(0)
+  const clickTimesRef = useRef([])
+  const discoTimeoutRef = useRef(null)
   
   // Modern audio system using Web Audio API + HTML Audio fallback
   const slapAudioPool = useRef([])
@@ -42,8 +53,10 @@ function App() {
   // Detect mobile for performance optimization (keep for particle count)
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 
-  const generateUserId = () => {
-    return 'user_' + Math.random().toString(36).substr(2, 9)
+  const generateUserSession = (name) => {
+    // Store the name in localStorage for persistence
+    localStorage.setItem('beatmeat_username', name)
+    return name.toLowerCase().replace(/[^a-z0-9]/g, '_')
   }
 
   const encouragingMessages = [
@@ -56,7 +69,195 @@ function App() {
     "MAXIMUM CARNAGE ACHIEVED! 💥",
     "EPIC MEAT BEATING SKILLS! 🏆",
     "CHAMPION OF DESTRUCTION! 👑",
-    "ULTIMATE PUNCHING MACHINE! 🤖"
+    "ULTIMATE PUNCHING MACHINE! 🤖",
+    "PULVERIZING THE PROTEIN! 🍖",
+    "MAKING MINCEMEAT OF MISERY! 🤬",
+    "TENDERIZING THE TRUTH! ✨",
+    "MEAT-A-MORPHOSIS COMPLETE! 🐛",
+    "THIS MEAT'S HAD A MEATING! 🤝",
+    "FISTED TO PERFECTION! 👌",
+    "UNYIELDING MEAT-RELATED FURY! 😡",
+    "SMASHING SUCCESS! 🔨",
+    "PORK-FECT PERFORMANCE! 🐷",
+    "FISTFUL OF MEAT-TASTIC! 🤩",
+    "A WHOLE-SOME WHOPPING! 🍔",
+    "PUTTING THE PRO IN PROTEIN! 🍳",
+    "MEAT TO YOUR HEEL! 🐾",
+    "WHACKING IT HARD! 🪵",
+    "POUNDING POWERHOUSE! 💪",
+    "MEAT-ING YOUR DEMANDS! 🙋‍♀️",
+    "KNUCKLING UP FOR KNUCKLES! 👊",
+    "BEEF'S WHAT'S FOR DINNER! 🥩",
+    "POUNDING IT OUT! 🥁",
+    "A CUT ABOVE THE REST! 🔪",
+    "MASTERFUL MEAT PULVERIZER! 👨‍🍳",
+    "TENDERIZING THE TIMBER! 🌳",
+    "MEAT BEAT MANIA! 🤸‍♂️",
+    "FISTING FOR FREEDOM! 🗽",
+    "GIVING IT THE OLD POUNDAROONEY! 💰",
+    "THIS MEAT'S ABOUT TO GET MEAT-IER! 🥩",
+    "FISTING THE FAT! 🥓",
+    "A MEATY VICTORY! 🎉",
+    "HULK SMASH MEAT! 💚",
+    "MEAT AND GREET THE GROUND! 👋",
+    "SOCKING IT TO THE SUCCOTASH! 🌽",
+    "PUNCHING PROUDLY! 🦁",
+    "MEAT MASHING MARVEL! 🌟",
+    "A FISTFUL OF FLAVOR! 😋",
+    "YOU'RE A MEAT-OR! ☄️",
+    "MEAT THE CLOCK! ⏰",
+    "FISTING FOR FAME! 🏆",
+    "KNUCKLE SANDWICH SERVED! 🥪",
+    "BRINGING HOME THE BACON! 🥓",
+    "A BATCH OF BEATEN MEAT! 👨‍🍳",
+    "FISTING FOR FULFILLMENT! 🙏",
+    "PORKIN' IT HARD! 🐖",
+    "YOUR FISTS ARE FIERCE! 🔥",
+    "MEAT THE MOMENT! 🕰️",
+    "PUNCHING PURE POWER! 🔋",
+    "FISTING THE FROZEN! 🧊",
+    "MEAT-ING YOU HALFWAY! 🚶‍♂️",
+    "KNUCKLING DOWN! 👊",
+    "A MEAT-TASTIC JOB! 💯",
+    "POUNDING OUT THE PROBLEMS! 🤬",
+    "PULVERIZING MEAT LIKE A MAD BUTCHER! 🔪",
+    "YOUR FISTS ARE MEAT’S WORST NIGHTMARE! 😈",
+    "SMASHING STEAKS INTO OBLIVION! 🍖",
+    "FIST-FLINGING MEAT-MASHING MANIAC! 🦵",
+    "TURNING TENDERLOIN TO TENDER-GONE! 💨",
+    "CARNIVOROUS CARNAGE KING! 🦁",
+    "BEATING MEAT LIKE IT OWES YOU MONEY! 💸",
+    "HAMMERING HAMS INTO ANOTHER DIMENSION! 🌌",
+    "SLAMMING SIRLOIN WITH SAVAGE STYLE! 🥊",
+    "FIST-BUMPING BEEF TO BITS! ✊",
+    "MEAT-ANNIHILATING MADNESS UNLEASHED! 💣",
+    "PUNCHING PORK INTO THE NEXT GALAXY! 🚀",
+    "GRINDING GROUND BEEF INTO DUST! 🪓",
+    "YOUR HANDS ARE MEAT’S DOOMSDAY! ☠️",
+    "WRECKING RIBS WITH RELENTLESS RAGE! 🛠️",
+    "SMACKING SAUSAGE INTO SUBMISSION! 🥓",
+    "FIST-FUELED MEAT MASSACRE! 🩸",
+    "TENDERIZING T-BONES LIKE A TITAN! 🦖",
+    "BASHING BRISKET WITH BRUTAL FORCE! 🔨",
+    "MEAT MEETS ITS MATCH IN YOUR MITTS! 🧤",
+    "CRUSHING CUTLETS WITH COSMIC POWER! 🌠",
+    "PUMMELING PATTIES INTO PANCAKES! 🥞",
+    "YOUR PUNCHES ARE PURE MEAT MAYHEM! 🌀",
+    "SLAUGHTERING SLABS WITH SWAGGER! 😎",
+    "FISTS OF FLAVOR-DEATH-DEALING FURY! 🍴",
+    "ANNIHILATING NY STRIP WITH NO MERCY! 🗡️",
+    "BEATING BEEF LIKE A DRUM SOLO! 🥁",
+    "TURNING TRI-TIP INTO TRI-TRASH! 🗑️",
+    "MEAT-MULCHING MONSTER ON THE LOOSE! 👹",
+    "PUNCHING PORKCHOPS INTO PULP! 🍎",
+    "YOUR HANDS ARE A MEAT APOCALYPSE! 🌋",
+    "SMASHING SHANKS WITH SHOCKING SKILL! ⚡",
+    "FISTING FILET MIGNON TO FINE DUST! 💨",
+    "RULING THE ROAST WITH RUTHLESS HITS! 👑",
+    "DEMOLISHING DRUMSTICKS WITH DELIGHT! 🍗",
+    "YOUR PUNCHES ARE MEAT’S FINAL BOSS! 🎮",
+    "GRILLING GROUND MEAT WITH FIST-FIRE! 🔥",
+    "BLASTING BACON INTO BACON BITS! 🥓",
+    "MEAT-MASHING MAESTRO OF MAYHEM! 🎶",
+    "FIST-SMACKING STEAKS TO STARDUST! ✨",
+    "CHOPPING CHOPS WITH CHAOTIC CHOPS! 🪚",
+    "YOUR HANDS ARE MEAT’S KRYPTONITE! 🪨",
+    "PULVERIZING PRIME CUTS TO PURE CHAOS! 🌪️",
+    "SLAYING SLICES WITH SUPREME SWAG! 😈",
+    "FIST-BLASTING BEEF INTO ETERNITY! 🕳️",
+    "MEAT-MELTING MONARCH OF MADNESS! 👺",
+    "SMACKING SIZZLE INTO SILENCE! 🤫",
+    "YOUR PUNCHES ARE A MEAT APOCALYPSE! 💥",
+    "WHACKING THAT MEAT WITH WICKED RHYTHM! 🥁",
+    "TENDERIZING WITH TANTALIZING TEMPO! 💃",
+    "FIST-PUMPING YOUR WAY TO MEAT GLORY! 🙌",
+    "SLAPPING THAT SAUSAGE WITH SASS! 😏",
+    "BEATING THE MEAT LIKE IT’S DATE NIGHT! 🌙",
+    "GRINDING THAT CUT WITH GIDDY GUSTO! 😜",
+    "YOUR HANDS ARE MEAT’S NAUGHTY NEMESIS! 😈",
+    "POUNDING PORK WITH PLAYFUL PRECISION! 🎯",
+    "SMACKING THAT SLAB WITH SOLO STYLE! 😉",
+    "TURNING MEAT INTO A HOT MESS! 🔥",
+    "WHACKING THAT MEAT WITH WILD ABANDON! 😜",
+    "SLAPPING THE SLAB LIKE IT’S FRIDAY NIGHT! 🌟",
+    "POUNDING THAT CUT WITH PURE PASSION! 💥",
+    "YOUR FISTS ARE MEAT’S NAUGHTY NIGHTMARE! 😈",
+    "TENDERIZING WITH TEMPTING TENACITY! 💦",
+    "SMACKING THAT SAUSAGE WITH SAUCY FLAIR! 😏",
+    "BEATING THE BEEF LIKE IT’S PERSONAL! 👊",
+    "GRINDING THAT MEAT WITH GLEEFUL GUSTO! 😄",
+    "FIST-PUMPING PORK INTO PURE CHAOS! 🎉",
+    "YOUR HANDS ARE MEAT’S SINFUL SENSATION! 🔥",
+    "SLAPPING THAT MEAT WITH SIZZLING SWAG! 😎",
+    "POUNDING THE PORK LIKE IT’S PARTY TIME! 🎉",
+    "YOUR FISTS ARE MEAT’S NAUGHTY NEMESIS! 😈",
+    "WHACKING THAT SLAB WITH WICKED RHYTHM! 🥁",
+    "TENDERIZING WITH TANTALIZING FURY! 💦",
+    "SMACKING SAUSAGE WITH SAUCY STYLE! 😏",
+    "BEATING THE BEEF WITH BEDROOM BRAVADO! 🔥",
+    "GRINDING THAT CUT WITH GIDDY GUSTO! 😜",
+    "FIST-PUMPING PORK INTO PURE PANDEMONIUM! 💥",
+    "YOUR HANDS ARE MEAT’S MIDNIGHT FANTASY! 🌙",
+    "THRASHING THAT TENDERLOIN WITH THRILL! ⚡",
+    "SLAMMING STEAK WITH STEAMY SPUNK! 😘",
+    "PULVERIZING PATTIES WITH PLAYFUL PASSION! 💖",
+    "YOUR PUNCHES ARE MEAT’S GUILTY PLEASURE! 😈",
+    "WHIPPING THAT BRISKET INTO A FRENZY! 🪢",
+    "SMASHING SLABS WITH SINFUL SKILL! 😇",
+    "BEATING THAT CUT LIKE IT’S DATE NIGHT! 💋",
+    "FISTING FILET WITH FLIRTATIOUS FLAIR! 😉",
+    "GRINDING GROUND MEAT WITH GLEEFUL GRACE! ✨",
+    "YOUR HANDS TURN MEAT INTO A HOT MESS! 🔥",
+    "PUMMELING PORKCHOPS WITH PURE PIZZAZZ! 🌟",
+    "SLAPPING SIRLOIN WITH SCANDALOUS SPEED! 🏃",
+    "TENDERIZING WITH TEMPTING TENACITY! 💦",
+    "YOUR FISTS ARE MEAT’S FORBIDDEN DREAM! 😴",
+    "WHACKING THAT SHANK WITH WILD WHIMSY! 🎠",
+    "BEATING BEEF LIKE IT’S AFTER HOURS! 🕒",
+    "SMACKING SAUSAGE WITH SLY SEDUCTION! 😘",
+    "POUNDING THAT ROAST WITH RACY RHYTHM! 🎶",
+    "YOUR PUNCHES ARE MEAT’S NAUGHTY NIGHTMARE! 😱",
+    "GRINDING THAT SLICE WITH GUTSY GLAM! 💃",
+    "FIST-BUMPING BEEF INTO A FEVER PITCH! 🥊",
+    "SLAMMING STEAK WITH SULTRY SWAGGER! 😎",
+    "TENDERIZING T-BONES WITH TINGLING THRILL! ⚡",
+    "YOUR HANDS ARE MEAT’S SPICY SECRET! 🌶️",
+    "WHACKING THAT CUT WITH WINKING WIT! 😉",
+    "POUNDING PORK WITH PULSE-POUNDING PASSION! 💓",
+    "SMASHING SLABS WITH SNEAKY SPARKLE! ✨",
+    "BEATING THAT BRISKET WITH BRAZEN BOLDNESS! 💪",
+    "YOUR FISTS TURN MEAT INTO A WILD RIDE! 🎢",
+    "SLAPPING SAUSAGE WITH SAUCY SASS! 😏",
+    "GRINDING GROUND MEAT WITH GLEEFUL GRIT! 😄",
+    "PUMMELING PATTIES WITH PLAYFUL PROWESS! 🎯",
+    "YOUR PUNCHES ARE MEAT’S TABOO TANGO! 💃",
+    "WHIPPING THAT ROAST INTO A RISQUÉ RUSH! 🏎️",
+    "SMACKING SIRLOIN WITH SINFUL SWANK! 😈",
+    "BEATING BEEF WITH BACKROOM BRIO! 🔥",
+    "FISTING FILET WITH FEISTY FERVOR! 👊",
+    "YOUR HANDS MAKE MEAT MELT IN MAYHEM! 💥",
+    "SLAMMING SHANKS WITH SHAMELESS SHOW! 🌟",
+    "POUNDING PORKCHOPS WITH PURE PERVY PANACHE! 😜",
+    "BONE-SHAKING MEATQUAKE! 🌋",
+    "PUNCH LEVEL: BANANA PEEL MASTER! 🍌",
+    "THE MEAT CAN’T EVEN FILE TAXES ANYMORE! 🧾",
+    "HOLY GUACAMOLE, YOU’RE A MEAT TORNADO! 🥑🌪️",
+    "ABSOLUTE SAUSAGE SLAYER! 🌭",
+    "THE MEAT CALLED ITS MOM, IT’S DONE! 📞😭",
+    "YOU’RE OFFICIALLY A CHICKEN NUGGET WIZARD! 🧙‍♂️🍗",
+    "KABOOM! THAT MEAT JUST JOINED THE CIRCUS! 🎪",
+    "MEAT STATUS: DEMOLISHED LIKE A PIÑATA! 🎉",
+    "YOU PUNCHED THE FLAVOR RIGHT OUT OF IT! 🤯",
+    "THE MEAT IS APPLYING FOR WITNESS PROTECTION! 🕶️",
+    "FISTS STRONGER THAN GRANDMA’S MEATLOAF! 🥘",
+    "THE COWS ARE TELLING LEGENDS ABOUT YOU! 🐄📖",
+    "YOU’RE THE OFFICIAL MINISTER OF MEAT BEATERY! 🏛️",
+    "PUNCH POWER OVER 9000! 🔋",
+    "MEAT SAID 'OUCH' IN 7 DIFFERENT LANGUAGES! 🌍",
+    "YOU’RE A BEEF BOSS WITH EXTRA CHEESE! 🍔🧀",
+    "THE MEAT JUST RAGE-QUIT! 🎮😤",
+    "GALACTIC HAMMERFIST FROM SPACE! 🚀👊",
+    "CONGRATS, YOU’VE UNLOCKED SECRET SPAGHETTI MODE! 🍝✨"
   ]
 
   const showEncouragingMessage = () => {
@@ -67,6 +268,43 @@ function App() {
     setTimeout(() => {
       setShowEncouragement(false)
     }, 3000)
+  }
+
+  // Detect rapid clicking for disco mode
+  const checkForDiscoMode = () => {
+    const now = Date.now()
+    clickTimesRef.current.push(now)
+    
+    // Keep only clicks from the last 2 seconds
+    clickTimesRef.current = clickTimesRef.current.filter(time => now - time <= 2000)
+    
+    // If 5+ clicks in 2 seconds, activate disco mode!
+    if (clickTimesRef.current.length >= 5) {
+      if (!isDiscoMode) {
+        console.log('🕺 DISCO MEAT BEATING MODE ACTIVATED! 🕺')
+        setIsDiscoMode(true)
+      }
+      
+      // Clear any existing timeout and set a new one
+      if (discoTimeoutRef.current) {
+        clearTimeout(discoTimeoutRef.current)
+      }
+      
+      // Turn off disco mode after 5 seconds of no rapid clicking
+      discoTimeoutRef.current = setTimeout(() => {
+        setIsDiscoMode(false)
+        console.log('🎵 Disco mode deactivated after 5 seconds')
+        discoTimeoutRef.current = null
+      }, 5000)
+    } else if (isDiscoMode) {
+      // If we're in disco mode but clicks are slowing down, turn it off
+      if (discoTimeoutRef.current) {
+        clearTimeout(discoTimeoutRef.current)
+      }
+      setIsDiscoMode(false)
+      console.log('🎵 Disco mode deactivated - slow clicking detected')
+      discoTimeoutRef.current = null
+    }
   }
 
   // Initialize Web Audio API context
@@ -266,7 +504,7 @@ function App() {
   }
 
   const connectWebSocket = (name) => {
-    const userId = generateUserId()
+    const userId = generateUserSession(name)
     // Use environment variable for WebSocket URL, fallback to production
     const wsUrl = import.meta.env.VITE_WS_URL || 'wss://smsandstocks.com'
     const websocket = new WebSocket(`${wsUrl}/ws/${userId}`)
@@ -287,6 +525,8 @@ function App() {
           setGlobalClicks(data.global_clicks)
           setConnectedUsers(data.connected_users)
           setLeaderboard(data.leaderboard)
+          setUserRank(data.user_rank || 0)
+          setMessages(data.recent_messages || [])
           break
           
         case 'stats_update':
@@ -298,6 +538,7 @@ function App() {
         case 'click_response':
           setPersonalClicks(data.personal_clicks)
           setShouldSmoke(data.should_smoke)
+          setUserRank(data.user_rank || 0)
           
           // Play sound effects
           playClickSounds(data.personal_clicks)
@@ -314,6 +555,24 @@ function App() {
             }, 3000)
           }
           break
+          
+        case 'new_message':
+          setMessages(prev => [...prev, {
+            username: data.username,
+            message: data.message,
+            created_at: data.created_at
+          }])
+          
+          // Only increment unread if chat is closed
+          if (!showChat) {
+            setUnreadCount(prev => {
+              const newCount = prev + 1
+              // Update document title with unread count
+              document.title = `(${newCount}) Beat Meat - Click the Meat!`
+              return newCount
+            })
+          }
+          break
       }
     }
     
@@ -323,6 +582,34 @@ function App() {
     }
     
     setWs(websocket)
+  }
+
+  const sendMessage = () => {
+    if (!ws || !newMessage.trim()) return
+    
+    ws.send(JSON.stringify({
+      type: 'message',
+      message: newMessage.trim()
+    }))
+    
+    setNewMessage('')
+  }
+
+  const handleMessageKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      sendMessage()
+    }
+  }
+
+  const toggleChat = () => {
+    const newShowChat = !showChat
+    setShowChat(newShowChat)
+    
+    // When opening chat, reset unread count and restore title
+    if (newShowChat) {
+      setUnreadCount(0)
+      document.title = originalTitle || 'Beat Meat - Click the Meat!'
+    }
   }
 
   const handleNameSubmit = () => {
@@ -380,6 +667,9 @@ function App() {
   const handleFistClick = () => {
     if (!ws) return
     
+    // Check for disco mode on every click!
+    checkForDiscoMode()
+    
     // Always trigger particles and send click, but don't reset animation if already punching
     createParticles()
     
@@ -401,8 +691,20 @@ function App() {
   }
 
   useEffect(() => {
+    // Store original document title
+    setOriginalTitle(document.title)
+    
     // Initialize modern audio system
     initializeAudioSystem()
+    
+    // Check if user has a stored name from previous session
+    const storedName = localStorage.getItem('beatmeat_username')
+    if (storedName) {
+      setUserName(storedName)
+      setTempName(storedName)
+      setShowNamePrompt(false)
+      connectWebSocket(storedName)
+    }
 
     return () => {
       if (ws) {
@@ -412,6 +714,10 @@ function App() {
       if (bgMusicRef.current) {
         bgMusicRef.current.pause()
         bgMusicRef.current = null
+      }
+      // Clear disco timeout
+      if (discoTimeoutRef.current) {
+        clearTimeout(discoTimeoutRef.current)
       }
       // DON'T close audio context during development (causes issues)
       // Only close on actual app shutdown
@@ -439,7 +745,7 @@ function App() {
             type="text"
             value={tempName}
             onChange={(e) => setTempName(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleNameSubmit()}
+            onKeyDown={(e) => e.key === 'Enter' && handleNameSubmit()}
             placeholder="Enter your name"
             maxLength={20}
           />
@@ -455,7 +761,7 @@ function App() {
   }
 
   return (
-    <div className="game-container">
+    <div className={`game-container ${isDiscoMode ? 'disco-mode' : ''}`}>
       <div className="stats-bar">
         <div className="stat-item">
           <div className="stat-label">Your Clicks</div>
@@ -465,13 +771,13 @@ function App() {
           <div className="stat-label">Global Clicks</div>
           <div className="stat-value">{globalClicks.toLocaleString()}</div>
         </div>
-        <div className="stat-item">
-          <div className="stat-label">Players Online</div>
+        <div className="stat-item" onClick={() => setShowOnlineOnly(!showOnlineOnly)} style={{cursor: 'pointer'}}>
+          <div className="stat-label">Who's beatin?</div>
           <div className="stat-value">{connectedUsers}</div>
         </div>
         <div className="stat-item">
-          <div className="stat-label">Welcome</div>
-          <div className="stat-value">{userName}</div>
+          <div className="stat-label">Your Rank</div>
+          <div className="stat-value">#{userRank || '?'}</div>
         </div>
       </div>
 
@@ -482,6 +788,9 @@ function App() {
             alt="Fist"
             className={`fist-icon ${isPunching ? 'punching' : ''}`}
             onClick={handleFistClick}
+            draggable="false"
+            onDragStart={(e) => e.preventDefault()}
+            onSelectStart={(e) => e.preventDefault()}
           />
         </div>
 
@@ -490,6 +799,9 @@ function App() {
             src="/beatmeat/icons/meat.png"
             alt="Meat"
             className={`meat-icon ${isMeatHit ? 'hit' : ''}`}
+            draggable="false"
+            onDragStart={(e) => e.preventDefault()}
+            onSelectStart={(e) => e.preventDefault()}
           />
           <div className="particles">
             {particles.map(particle => (
@@ -510,23 +822,68 @@ function App() {
         </div>
       </div>
 
-      <div className="leaderboard">
-        <h3>🏆 Leaderboard</h3>
-        {leaderboard.map((player, index) => (
+      {/* Leaderboard Toggle */}
+      <div className="leaderboard-toggle" onClick={() => setShowLeaderboard(!showLeaderboard)}>
+        📊 {showLeaderboard ? 'Hide' : 'Show'} Board
+      </div>
+
+      {showLeaderboard && (
+        <div className="leaderboard">
+          <h3>🏆 {showOnlineOnly ? 'Online Players' : 'Leaderboard'}</h3>
+        {(showOnlineOnly ? leaderboard.filter(player => player.is_online) : leaderboard).map((player, index) => (
           <div key={index} className="leaderboard-item">
             <span>
               <span className="leaderboard-rank">#{index + 1}</span>
               {player.name}
+              {player.is_online && <span className="online-indicator">🟢</span>}
             </span>
             <span>{player.clicks}</span>
           </div>
         ))}
-        {leaderboard.length === 0 && (
+        {(showOnlineOnly ? leaderboard.filter(player => player.is_online) : leaderboard).length === 0 && (
           <div className="leaderboard-item">
-            <span>No players yet</span>
+            <span>{showOnlineOnly ? 'No online players' : 'No players yet'}</span>
           </div>
         )}
+        </div>
+      )}
+
+      {/* Chat System */}
+      <div className="chat-toggle" onClick={toggleChat}>
+        💬 Chat {unreadCount > 0 && `(${unreadCount})`}
       </div>
+      
+      {showChat && (
+        <div className="chat-container">
+          <div className="chat-header">
+            <h3>💬 Meat Beater Chat</h3>
+            <button onClick={() => setShowChat(false)}>×</button>
+          </div>
+          <div className="chat-messages">
+            {messages.map((msg, index) => (
+              <div key={index} className="chat-message">
+                <span className="chat-username">{msg.username}:</span>
+                <span className="chat-text">{msg.message}</span>
+              </div>
+            ))}
+            {messages.length === 0 && (
+              <div className="chat-empty">No messages yet. Be the first to chat!</div>
+            )}
+          </div>
+          <div className="chat-input-container">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={handleMessageKeyPress}
+              placeholder="Type a message..."
+              maxLength={500}
+              className="chat-input"
+            />
+            <button onClick={sendMessage} className="chat-send-btn">Send</button>
+          </div>
+        </div>
+      )}
 
       {showEncouragement && (
         <div className="encouragement-message">

@@ -45,6 +45,8 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
             # Get initial stats from database
             global_stats = await db.get_global_stats()
             leaderboard = await db.get_leaderboard()
+            user_rank = await db.get_user_rank(user_name)
+            recent_messages = await db.get_recent_messages()
             
             # Send initial stats to the user
             await websocket.send_text(json.dumps({
@@ -52,7 +54,9 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
                 "personal_clicks": user_data["clicks"],
                 "global_clicks": global_stats["global_clicks"],
                 "connected_users": len(connected_users),
-                "leaderboard": leaderboard
+                "leaderboard": leaderboard,
+                "user_rank": user_rank,
+                "recent_messages": recent_messages
             }))
             
             # Notify all users about connection count update
@@ -65,23 +69,48 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
             if message["type"] == "click":
                 # Add click to database
                 click_result = await db.add_click(user_id)
+                user_rank = await db.get_user_rank(user_name)
                 
                 # Send response to clicking user
                 await websocket.send_text(json.dumps({
                     "type": "click_response",
                     "personal_clicks": click_result["user_clicks"],
                     "should_smoke": click_result["should_smoke"],
-                    "recent_clicks": click_result["recent_clicks"]
+                    "recent_clicks": click_result["recent_clicks"],
+                    "user_rank": user_rank
                 }))
+                
+                # Broadcast updated stats to all users after click
+                await broadcast_stats()
+                
+            elif message["type"] == "message":
+                # Handle chat message
+                chat_message = message.get("message", "").strip()
+                
+                if chat_message and len(chat_message) <= 500:
+                    # Add message to database
+                    message_data = await db.add_message(user_id, user_name, chat_message)
+                    
+                    # Broadcast message to all connected users
+                    await broadcast_message({
+                        "type": "new_message",
+                        "username": user_name,
+                        "message": chat_message,
+                        "created_at": "just now"
+                    })
                 
     except WebSocketDisconnect:
         connected_users.discard(user_id)
         active_connections.pop(user_id, None)
+        # Mark user as offline in database immediately
+        await db.mark_user_offline(user_id)
         await broadcast_stats()
     except Exception as e:
         print(f"Error in websocket for user {user_id}: {e}")
         connected_users.discard(user_id)
         active_connections.pop(user_id, None)
+        # Mark user as offline in database immediately
+        await db.mark_user_offline(user_id)
 
 async def broadcast_stats():
     """Broadcast current stats to all connected users"""
@@ -91,12 +120,14 @@ async def broadcast_stats():
     # Get fresh stats from database
     global_stats = await db.get_global_stats()
     leaderboard = await db.get_leaderboard()
+    online_players = await db.get_online_players()
     
     stats_message = json.dumps({
         "type": "stats_update",
         "global_clicks": global_stats["global_clicks"],
         "connected_users": len(connected_users),
-        "leaderboard": leaderboard
+        "leaderboard": leaderboard,
+        "online_players": online_players
     })
     
     # Send to all connected users
@@ -104,6 +135,26 @@ async def broadcast_stats():
     for user_id, websocket in active_connections.items():
         try:
             await websocket.send_text(stats_message)
+        except:
+            disconnected_users.append(user_id)
+    
+    # Clean up disconnected users
+    for user_id in disconnected_users:
+        connected_users.discard(user_id)
+        active_connections.pop(user_id, None)
+
+async def broadcast_message(message_data):
+    """Broadcast a chat message to all connected users"""
+    if not active_connections:
+        return
+    
+    message_json = json.dumps(message_data)
+    
+    # Send to all connected users
+    disconnected_users = []
+    for user_id, websocket in active_connections.items():
+        try:
+            await websocket.send_text(message_json)
         except:
             disconnected_users.append(user_id)
     

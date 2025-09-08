@@ -18,6 +18,11 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Override body background during disco mode */
+body:has(.game-container.disco-mode) {
+  background: #000 !important;
+}
+
 #root {
   width: 100%;
   min-height: 100vh;
@@ -31,6 +36,30 @@ body {
   min-height: 100vh;
   padding: 20px;
   position: relative;
+  transition: background 0.3s ease;
+}
+
+/* DISCO MODE BACKGROUND - REDUCED INTENSITY */
+.game-container.disco-mode {
+  animation: disco-background 1.2s infinite;
+}
+
+@keyframes disco-background {
+  0% { 
+    background: linear-gradient(45deg, #cc6699, #6699cc, #99cc66, #cc9966);
+  }
+  25% { 
+    background: linear-gradient(135deg, #cc9966, #9966cc, #66cc99, #cc6699);
+  }
+  50% { 
+    background: linear-gradient(225deg, #66cc99, #cc6699, #9966cc, #cc9966);
+  }
+  75% { 
+    background: linear-gradient(315deg, #9966cc, #cc9966, #66cc99, #cc6699);
+  }
+  100% { 
+    background: linear-gradient(45deg, #cc6699, #6699cc, #99cc66, #cc9966);
+  }
 }
 
 .stats-bar {
@@ -73,12 +102,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: min(0.5vw, 3px);
   margin-top: 120px;
   position: relative;
   height: calc(100vh - 200px);
   width: 100%;
-  padding: 0 20px;
+  padding: 0 min(3vw, 20px);
 }
 
 .fist-container {
@@ -88,7 +117,6 @@ body {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-  flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -96,14 +124,12 @@ body {
   -webkit-tap-highlight-color: rgba(0,0,0,0);
   -webkit-tap-highlight-color: transparent;
   outline: none;
-  padding: min(10vw, 80px);
-  min-width: min(60vw, 400px);
-  min-height: min(60vh, 400px);
+  padding: min(0.5vw, 5px);
 }
 
 .fist-icon {
-  width: min(45vw, 500px);
-  height: min(45vw, 500px);
+  width: min(60vw, 800px);
+  height: min(60vw, 800px);
   max-width: 90%;
   transition: transform 0.1s ease;
   filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
@@ -122,6 +148,12 @@ body {
   appearance: none;
   border: none;
   background: none;
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  draggable: false;
 }
 
 .fist-icon:hover {
@@ -132,10 +164,21 @@ body {
   transform: scale(0.98);
 }
 
-/* Simplified punching animation for mobile performance */
+/* Dynamic punching animation - fist moves toward meat */
 .fist-icon.punching {
-  transform: scale(1.1);
-  transition: transform 0.15s ease-out;
+  animation: punch-forward 0.25s ease-out forwards;
+}
+
+@keyframes punch-forward {
+  0% {
+    transform: scale(1) translateX(0);
+  }
+  50% {
+    transform: scale(1.1) translateX(min(25vw, 200px));
+  }
+  100% {
+    transform: scale(1) translateX(0);
+  }
 }
 
 .fist-container.smoking {
@@ -174,30 +217,56 @@ body {
 
 .meat-container {
   position: relative;
-  flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: min(0.5vw, 5px);
 }
 
 .meat-icon {
-  width: min(45vw, 500px);
-  height: min(45vw, 500px);
+  width: min(60vw, 800px);
+  height: min(60vw, 800px);
   max-width: 90%;
   transition: transform 0.1s ease;
   filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  draggable: false;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 .meat-icon.hit {
-  animation: meat-hit 0.3s ease-out;
+  animation: meat-impact 0.35s ease-out;
 }
 
-@keyframes meat-hit {
-  0% { transform: scale(1) rotate(0deg); }
-  25% { transform: scale(1.1) rotate(-5deg); }
-  50% { transform: scale(0.95) rotate(5deg); }
-  75% { transform: scale(1.05) rotate(-2deg); }
-  100% { transform: scale(1) rotate(0deg); }
+@keyframes meat-impact {
+  0% { 
+    transform: scale(1) translateX(0);
+  }
+  20% { 
+    transform: scale(1.2) translateX(min(5vw, 40px));
+  }
+  40% { 
+    transform: scale(0.9) translateX(min(7vw, 60px));
+  }
+  70% { 
+    transform: scale(1.05) translateX(min(3vw, 25px));
+  }
+  90% { 
+    transform: scale(0.98) translateX(min(1vw, 10px));
+  }
+  100% { 
+    transform: scale(1) translateX(0);
+  }
 }
 
 .particles {
@@ -273,6 +342,17 @@ body {
   font-weight: bold;
   color: #ffd700;
   margin-right: 8px;
+}
+
+.online-indicator {
+  margin-left: 5px;
+  font-size: 10px;
+}
+
+.stat-item[style*="cursor: pointer"]:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+  transition: all 0.2s ease;
 }
 
 .name-prompt {
@@ -373,27 +453,29 @@ body {
 @media (max-width: 768px) {
   .game-area {
     flex-direction: row;
-    gap: 8px;
+    gap: min(0.3vw, 2px);
     margin-top: 100px;
     height: calc(100vh - 160px);
     justify-content: center;
-    padding: 0 10px;
+    padding: 0 min(2vw, 10px);
   }
   
   .fist-container {
-    padding: min(8vw, 60px);
-    min-width: min(50vw, 300px);
-    min-height: min(50vh, 300px);
+    padding: min(0.3vw, 3px);
+  }
+  
+  .meat-container {
+    padding: min(0.3vw, 3px);
   }
   
   .fist-icon {
-    width: min(35vw, 200px);
-    height: min(35vw, 200px);
+    width: min(55vw, 600px);
+    height: min(55vw, 600px);
   }
   
   .meat-icon {
-    width: min(30vw, 180px);
-    height: min(30vw, 180px);
+    width: min(50vw, 550px);
+    height: min(50vw, 550px);
   }
   
   .stats-bar {
@@ -416,21 +498,65 @@ body {
 @media (max-width: 480px) {
   .game-area {
     margin-top: 90px;
-    gap: 5px;
+    gap: 0px;
     flex-direction: row;
     justify-content: center;
+    padding: 0 min(1vw, 5px);
+  }
+  
+  .fist-container {
+    padding: 0px;
+  }
+  
+  .meat-container {
+    padding: 0px;
   }
   
   .fist-icon {
-    width: min(40vw, 160px);
-    height: min(40vw, 160px);
+    width: min(50vw, 400px);
+    height: min(50vw, 400px);
   }
   
   .meat-icon {
-    width: min(35vw, 140px);
-    height: min(35vw, 140px);
+    width: min(45vw, 360px);
+    height: min(45vw, 360px);
   }
-  
+
+  /* Mobile-optimized punch animation */
+  @keyframes punch-forward {
+    0% {
+      transform: scale(1) translateX(0);
+    }
+    50% {
+      transform: scale(1.1) translateX(min(20vw, 120px));
+    }
+    100% {
+      transform: scale(1) translateX(0);
+    }
+  }
+
+  /* Mobile-optimized meat impact */
+  @keyframes meat-impact {
+    0% { 
+      transform: scale(1) translateX(0);
+    }
+    20% { 
+      transform: scale(1.15) translateX(min(2vw, 15px));
+    }
+    40% { 
+      transform: scale(0.9) translateX(min(3vw, 25px));
+    }
+    70% { 
+      transform: scale(1.05) translateX(min(1.5vw, 10px));
+    }
+    90% { 
+      transform: scale(0.98) translateX(min(0.5vw, 5px));
+    }
+    100% { 
+      transform: scale(1) translateX(0);
+    }
+  }
+
   .stats-bar {
     padding: 5px;
     grid-template-columns: repeat(2, 1fr);
@@ -573,19 +699,28 @@ body {
 @media (max-width: 768px) and (orientation: landscape) {
   .game-area {
     flex-direction: row;
-    gap: 8px;
+    gap: 0px;
     margin-top: 80px;
     height: calc(100vh - 120px);
+    padding: 0 min(1vw, 10px);
+  }
+  
+  .fist-container {
+    padding: 0px;
+  }
+  
+  .meat-container {
+    padding: 0px;
   }
   
   .fist-icon {
-    width: min(35vh, 200px);
-    height: min(35vh, 200px);
+    width: min(50vh, 400px);
+    height: min(50vh, 400px);
   }
   
   .meat-icon {
-    width: min(30vh, 180px);
-    height: min(30vh, 180px);
+    width: min(45vh, 360px);
+    height: min(45vh, 360px);
   }
   
   .leaderboard {
@@ -595,5 +730,214 @@ body {
     left: auto;
     width: 150px;
     max-height: 50vh;
+  }
+}
+
+/* Chat System */
+.chat-toggle {
+  position: fixed;
+  left: 20px;
+  top: 100px;
+  background: #ff6b6b;
+  color: white;
+  padding: 10px 15px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  z-index: 100;
+  user-select: none;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  transition: all 0.2s ease;
+}
+
+.chat-toggle:hover {
+  background: #ff5252;
+  transform: scale(1.05);
+}
+
+.leaderboard-toggle {
+  position: fixed;
+  right: 20px;
+  top: 60px;
+  background: #4CAF50;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 15px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 100;
+  user-select: none;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  transition: all 0.2s ease;
+}
+
+.leaderboard-toggle:hover {
+  background: #45a049;
+  transform: scale(1.05);
+}
+
+.chat-container {
+  position: fixed;
+  left: 20px;
+  top: 150px;
+  width: 300px;
+  height: 400px;
+  background: rgba(0, 0, 0, 0.95);
+  color: white;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  z-index: 101;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background: rgba(255, 107, 107, 0.2);
+  border-radius: 10px 10px 0 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chat-header h3 {
+  margin: 0;
+  font-size: 14px;
+  color: #ffd700;
+}
+
+.chat-header button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 5px;
+  border-radius: 3px;
+}
+
+.chat-header button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  font-size: 12px;
+}
+
+.chat-message {
+  margin-bottom: 8px;
+  word-wrap: break-word;
+}
+
+.chat-username {
+  color: #ff6b6b;
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.chat-text {
+  color: #e0e0e0;
+}
+
+.chat-empty {
+  color: #999;
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}
+
+.chat-input-container {
+  display: flex;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0 0 10px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 0;
+}
+
+.chat-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  padding: 8px 10px;
+  border-radius: 5px 0 0 5px;
+  font-size: 12px;
+}
+
+.chat-input::placeholder {
+  color: #ccc;
+}
+
+.chat-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.chat-send-btn {
+  background: #ff6b6b;
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 0 5px 5px 0;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.chat-send-btn:hover {
+  background: #ff5252;
+}
+
+.chat-send-btn:active {
+  transform: scale(0.95);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .chat-toggle {
+    left: 10px;
+    top: 80px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .leaderboard-toggle {
+    right: 10px;
+    top: 50px;
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+  
+  .chat-container {
+    left: 10px;
+    top: 120px;
+    width: calc(100vw - 40px);
+    max-width: 350px;
+    height: 400px;
+  }
+  
+  .chat-input-container {
+    padding: 8px;
+    gap: 5px;
+  }
+  
+  .chat-input {
+    padding: 10px;
+    font-size: 14px;
+  }
+  
+  .chat-send-btn {
+    padding: 10px 15px;
+    font-size: 14px;
+    min-width: 60px;
   }
 }
